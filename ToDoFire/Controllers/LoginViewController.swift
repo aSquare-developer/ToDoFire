@@ -88,15 +88,6 @@ class LoginViewController: UIViewController {
         }
         
         Auth.auth().createUser(withEmail: email, password: password) { [weak self] (user, error) in
-//            if error == nil {
-//                if user != nil {
-//
-//                } else {
-//                    print("user is not created")
-//                }
-//            } else {
-//                print(error!.localizedDescription)
-//            }
             
             guard error == nil, user != nil else {
                 print(error!.localizedDescription)
