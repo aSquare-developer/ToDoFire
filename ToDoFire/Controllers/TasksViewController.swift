@@ -59,12 +59,63 @@ class TasksViewController: UIViewController, UITableViewDelegate, UITableViewDat
         let cell = tableView.dequeueReusableCell(withIdentifier: "Cell", for: indexPath)
         
         cell.backgroundColor = .clear
-        cell.textLabel?.textColor = .white
         
-        let taskTitle = tasks[indexPath.row].title
+        let task = tasks[indexPath.row]
+        let taskTitle = task.title
+        let isCompleted = task.completed
+        cell.textLabel?.textColor = .white
         cell.textLabel?.text = taskTitle
         
+        toggleCompletion(cell, isCompleted: isCompleted)
+        
         return cell
+    }
+    
+    func tableView(_ tableView: UITableView, canEditRowAt indexPath: IndexPath) -> Bool {
+        return true
+    }
+    
+    func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
+        if editingStyle == .delete {
+            let task = tasks[indexPath.row]
+            task.ref?.removeValue()
+        }
+    }
+    
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        guard let cell = tableView.cellForRow(at: indexPath) else {
+            return
+        }
+        
+        let task = tasks[indexPath.row]
+        let isCompleted = !task.completed
+        
+        toggleCompletion(cell, isCompleted: isCompleted)
+        task.ref?.updateChildValues(["completed": isCompleted])
+    }
+    
+    
+    func toggleCompletion(_ cell: UITableViewCell, isCompleted: Bool) {
+        cell.accessoryType = isCompleted ? .checkmark : .none
+    }
+    
+    
+    func checkForIllegalCharacters(string: String) -> Bool {
+        let invalidCharacters = CharacterSet(charactersIn: ".#$[]")
+        .union(.newlines)
+        .union(.illegalCharacters)
+        .union(.controlCharacters)
+
+        if string.rangeOfCharacter(from: invalidCharacters) != nil {
+            
+            let alert = UIAlertController(title: "Error", message: "Illegal characters detected: .#$[]", preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "OK", style: .default))
+            
+            present(alert, animated: true, completion: nil)
+            return true
+        } else {
+            return false
+        }
     }
     
     @IBAction func addTapped(_ sender: UIBarButtonItem) {
@@ -72,7 +123,14 @@ class TasksViewController: UIViewController, UITableViewDelegate, UITableViewDat
         let alertController = UIAlertController(title: "New Task", message: "Add new task", preferredStyle: .alert)
         alertController.addTextField()
         let save  = UIAlertAction(title: "Save", style: .default) { [weak self] _ in
-            guard let textField = alertController.textFields?.first, textField.text != "" else { return }
+            
+            guard
+                let textField = alertController.textFields?.first,
+                textField.text != "",
+                self?.checkForIllegalCharacters(string: textField.text!) == false
+            else {
+                return
+            }
             
             let task = Task(title: textField.text!, userId: (self?.user.uid)!)
             let taskRef = self?.ref.child(task.title.lowercased())
